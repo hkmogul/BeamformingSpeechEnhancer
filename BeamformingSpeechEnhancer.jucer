@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT name="BeamformingSpeechEnhancer" projectType="audioplug" buildStandalone="1"
-              jucerVersion="5.3.1">
+              jucerVersion="5.3.1" pluginFormats="buildStandalone">
   <MAINGROUP id="SVFUSM" name="BeamformingSpeechEnhancer">
     <GROUP id="{BC2181B9-D656-C1D0-DD44-C346B7AE2FA3}" name="Source">
       <FILE id="mgBaLF" name="PluginProcessor.cpp" compile="1" resource="0"
@@ -38,6 +38,7 @@
         <MODULEPATH id="juce_audio_processors" path="../../modules"/>
         <MODULEPATH id="juce_audio_plugin_client" path="../../modules"/>
         <MODULEPATH id="juce_audio_utils" path="../../modules"/>
+        <MODULEPATH id="juce_dsp" path="../../modules"/>
       </MODULEPATHS>
     </VS2017>
   </EXPORTFORMATS>
@@ -52,6 +53,7 @@
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
