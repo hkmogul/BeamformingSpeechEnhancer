@@ -97,6 +97,11 @@ void BeamformingSpeechEnhancerAudioProcessor::prepareToPlay (double sampleRate, 
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+	dsp::ProcessSpec spec;
+	spec.numChannels = 2;
+	spec.maximumBlockSize = samplesPerBlock;
+	spec.sampleRate - sampleRate;
+	processor.prepare(spec);
 }
 
 void BeamformingSpeechEnhancerAudioProcessor::releaseResources()
@@ -144,18 +149,10 @@ void BeamformingSpeechEnhancerAudioProcessor::processBlock (AudioBuffer<float>& 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
-    }
+	dsp::AudioBlock<float> block(buffer);
+	dsp::ProcessContextReplacing<float> context(block);
+	processor.process(context);
+    
 }
 
 //==============================================================================
@@ -181,6 +178,12 @@ void BeamformingSpeechEnhancerAudioProcessor::setStateInformation (const void* d
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+}
+
+void BeamformingSpeechEnhancerAudioProcessor::updateProcessor(String filename)
+{
+	File f(filename);
+	processor.getProcessor().loadImpulseResponse(f, true, false, f.getSize(), false);
 }
 
 //==============================================================================

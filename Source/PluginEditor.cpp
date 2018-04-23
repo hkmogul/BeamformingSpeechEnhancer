@@ -15,9 +15,68 @@
 BeamformingSpeechEnhancerAudioProcessorEditor::BeamformingSpeechEnhancerAudioProcessorEditor (BeamformingSpeechEnhancerAudioProcessor& p)
     : AudioProcessorEditor (&p), processor (p)
 {
+
+	addAndMakeVisible(angleSelector);
+
+	// to allow it to run counterclockwise = change in angle
+	angleSelector.setRange(-345, 0, 15);
+	angleSelector.setSliderStyle(Slider::SliderStyle::Rotary);
+	angleSelector.setTextBoxStyle(Slider::TextEntryBoxPosition::NoTextBox, true, 0, 0);
+	angleSelector.setValue(0);
+
+	Slider::RotaryParameters param;
+	param.startAngleRadians = 0;
+	param.endAngleRadians = 2 * 3.14159;
+	param.stopAtEnd = false;
+	angleSelector.setRotaryParameters(param);
+	angleSelector.addListener(this);
+
+	addAndMakeVisible(textBox);
+	textBox.setText("0 degrees", false);
+	textBox.setReadOnly(true);
+	textBox.setCaretVisible(false);
+
+
+	addAndMakeVisible(angleSelectorLabel);
+	angleSelectorLabel.attachToComponent(&angleSelector, true);
+	angleSelectorLabel.setText("Angle (degrees)", NotificationType::dontSendNotification);
+
+
+	processor.updateProcessor("C:\\JUCE\\sbx\\BeamformingSpeechEnhancer\\MatlabScripts\\" + audioFiles[0]);
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (400, 300);
+
+	audioFiles =
+	{
+		"degree0.wav",
+		"degree15.wav",
+		"degree30.wav",
+		"degree45.wav",
+		"degree60.wav",
+		"degree75.wav",
+		"degree90.wav",
+		"degree105.wav",
+		"degree120.wav",
+		"degree135.wav",
+		"degree150.wav",
+		"degree165.wav",
+		"degree180.wav",
+		"degree195.wav",
+		"degree210.wav",
+		"degree225.wav",
+		"degree240.wav",
+		"degree255.wav",
+		"degree270.wav",
+		"degree285.wav",
+		"degree300.wav",
+		"degree315.wav",
+		"degree330.wav",
+		"degree345.wav"
+	};
+
+	// do the GUI stuff
+	
 }
 
 BeamformingSpeechEnhancerAudioProcessorEditor::~BeamformingSpeechEnhancerAudioProcessorEditor()
@@ -32,11 +91,28 @@ void BeamformingSpeechEnhancerAudioProcessorEditor::paint (Graphics& g)
 
     g.setColour (Colours::white);
     g.setFont (15.0f);
-    g.drawFittedText ("Hello World!", getLocalBounds(), Justification::centred, 1);
 }
 
 void BeamformingSpeechEnhancerAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
+	angleSelector.setBoundsRelative(0.4, 0.5, 0.3, 0.3);
+	textBox.setBoundsRelative(0.4, 0.85, 0.2, 0.05);
+}
+
+void BeamformingSpeechEnhancerAudioProcessorEditor::sliderValueChanged(Slider * slider)
+{
+	if (slider == &angleSelector)
+	{
+		// get the corresponding index
+		int index = -1 * angleSelector.getValue() /15;
+		// set the processor
+		processor.updateProcessor("C:\\JUCE\\sbx\\BeamformingSpeechEnhancer\\MatlabScripts\\" + audioFiles[index]);
+
+		// update the textbox
+		String m;
+		m << index * 15 << " degrees";
+		textBox.setText(m, false);
+	}
 }
