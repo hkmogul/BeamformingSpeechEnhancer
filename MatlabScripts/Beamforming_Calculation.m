@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 close all;
 clear all;
 
@@ -102,7 +101,4 @@ end
 % plot(left_ifft(8,:));
 % figure;
 % plot(right_ifft(8,:));
-=======
-% HI YITING
-%Hiiii, Hilary
->>>>>>> 55793ea499747c4a45a155dc21f1cfcf062570c2
+
