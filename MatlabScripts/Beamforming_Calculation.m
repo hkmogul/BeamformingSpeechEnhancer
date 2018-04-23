@@ -27,7 +27,7 @@ end
 
 
 % gamma: head-related coherence function
-% numorator
+% numerator
 gamma_num = sum(D_left .* conj(D_right));
 % denominator
 den_l = sum(abs(D_left).^2);
@@ -38,11 +38,11 @@ gamma = gamma_num ./ gamma_denominator;
 
 
 % phi: cross-power-spectral density matrix Phi22(k)
-phi = zeros(2,2,fft_length);
+phi = ones(2,2,fft_length);
 phi_inverse = zeros(2,2,fft_length);
-for i = 1 : fft_length
-    phi(:,:,i) = [1, gamma(i); gamma(i), 1];
-end
+phi(1,2,:) = gamma;
+phi(2,1,:) = gamma;
+
 % inverse phi
 for i = 1 : fft_length
     phi_inverse(:,:,i) = inv(phi(:,:,i));
@@ -85,7 +85,7 @@ end
 
 
 % audiowrite!
-Fs = 14400;
+Fs = 44100;
 stereo = zeros(fft_length, 2, 24);
 for i = 1 : 24
     stereo(:,:,i) = [left_ifft(i,:);right_ifft(i,:)]';
