@@ -9,8 +9,8 @@ right_impulse = r_hrir_S.content_m(73:96,:);
 
 
 % Dl, Dr: fft of impulse response
-D_left = fft(left_impulse.',1024).';
-D_right = fft(right_impulse.',1024).';
+D_left = fft(left_impulse.').';
+D_right = fft(right_impulse.').';
 fft_length = size(D_left,2);
 % hermitian transpose of Dl and Dr
 D_left_H = D_left';
