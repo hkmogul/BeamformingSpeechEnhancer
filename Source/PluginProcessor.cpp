@@ -182,6 +182,8 @@ void BeamformingSpeechEnhancerAudioProcessor::setStateInformation (const void* d
 
 void BeamformingSpeechEnhancerAudioProcessor::updateProcessor(String filename)
 {
+	DBG(filename);
+
 	File f(filename);
 	processor.getProcessor().loadImpulseResponse(f, true, false, f.getSize(), false);
 }

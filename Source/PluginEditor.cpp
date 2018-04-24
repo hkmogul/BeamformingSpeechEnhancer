@@ -15,7 +15,8 @@
 BeamformingSpeechEnhancerAudioProcessorEditor::BeamformingSpeechEnhancerAudioProcessorEditor (BeamformingSpeechEnhancerAudioProcessor& p)
     : AudioProcessorEditor (&p), processor (p)
 {
-
+	addAndMakeVisible(fileChooser);
+	fileChooser.addListener(this);
 	addAndMakeVisible(angleSelector);
 
 	// to allow it to run counterclockwise = change in angle
@@ -40,13 +41,8 @@ BeamformingSpeechEnhancerAudioProcessorEditor::BeamformingSpeechEnhancerAudioPro
 	addAndMakeVisible(angleSelectorLabel);
 	angleSelectorLabel.attachToComponent(&angleSelector, true);
 	angleSelectorLabel.setText("Angle (degrees)", NotificationType::dontSendNotification);
-
-
-	processor.updateProcessor("C:\\JUCE\\sbx\\BeamformingSpeechEnhancer\\MatlabScripts\\" + audioFiles[0]);
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setSize (400, 300);
-
+	// trigger the root folder selection right away
+	
 	audioFiles =
 	{
 		"degree0.wav",
@@ -74,6 +70,13 @@ BeamformingSpeechEnhancerAudioProcessorEditor::BeamformingSpeechEnhancerAudioPro
 		"degree330.wav",
 		"degree345.wav"
 	};
+	baseDir = "C:\\JUCE\\sbx\\BeamformingSpeechEnhancer\\MatlabScripts\\";
+	processor.updateProcessor(baseDir + audioFiles[0]);
+    // Make sure that before the constructor has finished, you've set the
+    // editor's size to whatever you need it to be.
+    setSize (400, 300);
+
+	
 
 	// do the GUI stuff
 	
@@ -99,6 +102,7 @@ void BeamformingSpeechEnhancerAudioProcessorEditor::resized()
     // subcomponents in your editor..
 	angleSelector.setBoundsRelative(0.4, 0.5, 0.3, 0.3);
 	textBox.setBoundsRelative(0.4, 0.85, 0.2, 0.05);
+	fileChooser.setBoundsRelative(0.1, 0.1, 0.5, 0.2);
 }
 
 void BeamformingSpeechEnhancerAudioProcessorEditor::sliderValueChanged(Slider * slider)
@@ -108,11 +112,29 @@ void BeamformingSpeechEnhancerAudioProcessorEditor::sliderValueChanged(Slider * 
 		// get the corresponding index
 		int index = -1 * angleSelector.getValue() /15;
 		// set the processor
-		processor.updateProcessor("C:\\JUCE\\sbx\\BeamformingSpeechEnhancer\\MatlabScripts\\" + audioFiles[index]);
+		processor.updateProcessor(baseDir + audioFiles[index]);
 
 		// update the textbox
 		String m;
 		m << index * 15 << " degrees";
 		textBox.setText(m, false);
+	}
+}
+
+void BeamformingSpeechEnhancerAudioProcessorEditor::buttonClicked(Button * button)
+{
+	//if (button == &selectBaseDir)
+	//{
+	//	// open a filechooser to select the base directory
+	//}
+}
+
+void BeamformingSpeechEnhancerAudioProcessorEditor::filenameComponentChanged(FilenameComponent * cpt)
+{
+	if (cpt == &fileChooser)
+	{
+		baseDir = fileChooser.getCurrentFileText() + "\\";
+		processor.updateProcessor(baseDir + audioFiles[0]);
+		DBG(baseDir);
 	}
 }

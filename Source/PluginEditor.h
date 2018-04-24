@@ -16,7 +16,7 @@
 //==============================================================================
 /**
 */
-class BeamformingSpeechEnhancerAudioProcessorEditor  : public AudioProcessorEditor, Slider::Listener
+class BeamformingSpeechEnhancerAudioProcessorEditor  : public AudioProcessorEditor, Slider::Listener, Button::Listener, FilenameComponentListener
 {
 public:
     BeamformingSpeechEnhancerAudioProcessorEditor (BeamformingSpeechEnhancerAudioProcessor&);
@@ -26,7 +26,8 @@ public:
     void paint (Graphics&) override;
     void resized() override;
 	void sliderValueChanged(Slider * slider) override;
-
+	void buttonClicked(Button *button) override;
+	void filenameComponentChanged(FilenameComponent* cpt) override;
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
@@ -35,5 +36,7 @@ private:
 	Slider angleSelector;
 	Label angleSelectorLabel;
 	TextEditor textBox;
+	FilenameComponent fileChooser{ "BaseDirectory",{}, false, true, false, "*",{}, "choose a base directory" };
+	String baseDir;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BeamformingSpeechEnhancerAudioProcessorEditor)
 };
