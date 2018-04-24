@@ -19,7 +19,7 @@ BeamformingSpeechEnhancerAudioProcessor::BeamformingSpeechEnhancerAudioProcessor
                       #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  AudioChannelSet::stereo(), true)
                       #endif
-                       .withOutput ("Output", AudioChannelSet::stereo(), true)
+                       .withOutput ("Output", AudioChannelSet::mono(), true)
                      #endif
                        )
 #endif
@@ -152,6 +152,22 @@ void BeamformingSpeechEnhancerAudioProcessor::processBlock (AudioBuffer<float>& 
 	dsp::AudioBlock<float> block(buffer);
 	dsp::ProcessContextReplacing<float> context(block);
 	processor.process(context);
+
+	// now, use the context to replace the output
+	for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+	{
+		// get write pointer to output
+		auto * writePtr = buffer.getWritePointer(i);
+
+		// get read ptr to inputs
+		auto *lRead = buffer.getReadPointer(0);
+		auto *rRead = buffer.getReadPointer(1);
+
+		for (int j = 0; j < buffer.getNumSamples(); ++j)
+		{
+			writePtr[j] = lRead[j] + rRead[j];
+		}
+	}
     
 }
 
@@ -185,7 +201,14 @@ void BeamformingSpeechEnhancerAudioProcessor::updateProcessor(String filename)
 	DBG(filename);
 
 	File f(filename);
-	processor.getProcessor().loadImpulseResponse(f, true, false, f.getSize(), false);
+	if (f.exists())
+	{
+		processor.getProcessor().loadImpulseResponse(f, true, false, f.getSize(), false);
+	}
+	else
+	{
+		DBG("File not found");
+	}
 }
 
 //==============================================================================

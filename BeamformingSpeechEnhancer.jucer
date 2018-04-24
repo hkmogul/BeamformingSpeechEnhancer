@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT name="BeamformingSpeechEnhancer" projectType="audioplug" buildStandalone="1"
-              jucerVersion="5.3.1" pluginFormats="buildStandalone">
+              jucerVersion="5.3.1" pluginFormats="buildStandalone,buildVST"
+              buildVST="1" buildVST3="0" buildAU="0" buildAUv3="0" buildRTAS="0"
+              buildAAX="0" enableIAA="0">
   <MAINGROUP id="SVFUSM" name="BeamformingSpeechEnhancer">
     <GROUP id="{BC2181B9-D656-C1D0-DD44-C346B7AE2FA3}" name="Source">
       <FILE id="mgBaLF" name="PluginProcessor.cpp" compile="1" resource="0"
