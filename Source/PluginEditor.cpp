@@ -43,7 +43,7 @@ BeamformingSpeechEnhancerAudioProcessorEditor::BeamformingSpeechEnhancerAudioPro
 	angleSelectorLabel.setText("Angle (degrees)", NotificationType::dontSendNotification);
 	// trigger the root folder selection right away
 	
-	audioFiles =
+	beamFormerFiles =
 	{
 		"degree0.wav",
 		"degree15.wav",
@@ -70,16 +70,43 @@ BeamformingSpeechEnhancerAudioProcessorEditor::BeamformingSpeechEnhancerAudioPro
 		"degree330.wav",
 		"degree345.wav"
 	};
+
+	mFiles =
+	{
+		"M_degree0.wav",
+		"M_degree15.wav",
+		"M_degree30.wav",
+		"M_degree45.wav",
+		"M_degree60.wav",
+		"M_degree75.wav",
+		"M_degree90.wav",
+		"M_degree105.wav",
+		"M_degree120.wav",
+		"M_degree135.wav",
+		"M_degree150.wav",
+		"M_degree165.wav",
+		"M_degree180.wav",
+		"M_degree195.wav",
+		"M_degree210.wav",
+		"M_degree225.wav",
+		"M_degree240.wav",
+		"M_degree255.wav",
+		"M_degree270.wav",
+		"M_degree285.wav",
+		"M_degree300.wav",
+		"M_degree315.wav",
+		"M_degree330.wav",
+		"M_degree345.wav"
+	};
+
+
 	baseDir = "C:\\JUCE\\sbx\\BeamformingSpeechEnhancer\\MatlabScripts\\";
-	processor.updateProcessor(baseDir + audioFiles[0]);
-    // Make sure that before the constructor has finished, you've set the
+	processor.updateBeamformer(File(baseDir).getChildFile(beamFormerFiles[0]).getFullPathName());
+	processor.updatePostFilter(File(baseDir).getChildFile(mFiles[0]).getFullPathName());
+
+	// Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (400, 300);
-
-	
-
-	// do the GUI stuff
-	
+    setSize (400, 300);	
 }
 
 BeamformingSpeechEnhancerAudioProcessorEditor::~BeamformingSpeechEnhancerAudioProcessorEditor()
@@ -112,7 +139,8 @@ void BeamformingSpeechEnhancerAudioProcessorEditor::sliderValueChanged(Slider * 
 		// get the corresponding index
 		int index = -1 * angleSelector.getValue() /15;
 		// set the processor
-		processor.updateProcessor(baseDir + audioFiles[index]);
+		processor.updateBeamformer(File(baseDir).getChildFile(beamFormerFiles[index]).getFullPathName());
+		processor.updatePostFilter(File(baseDir).getChildFile(mFiles[index]).getFullPathName());
 
 		// update the textbox
 		String m;
@@ -134,7 +162,7 @@ void BeamformingSpeechEnhancerAudioProcessorEditor::filenameComponentChanged(Fil
 	if (cpt == &fileChooser)
 	{
 		baseDir = fileChooser.getCurrentFileText() + "\\";
-		processor.updateProcessor(baseDir + audioFiles[0]);
+		processor.updateBeamformer(baseDir + beamFormerFiles[0]);
 		DBG(baseDir);
 	}
 }

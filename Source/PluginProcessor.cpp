@@ -10,16 +10,18 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <cmath>
+const int FFT_ORDER = 256;
 
 //==============================================================================
-BeamformingSpeechEnhancerAudioProcessor::BeamformingSpeechEnhancerAudioProcessor()
+BeamformingSpeechEnhancerAudioProcessor::BeamformingSpeechEnhancerAudioProcessor() 
 #ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  AudioChannelSet::stereo(), true)
                       #endif
-                       .withOutput ("Output", AudioChannelSet::mono(), true)
+                       .withOutput ("Output", AudioChannelSet::stereo(), true)
                      #endif
                        )
 #endif
@@ -28,6 +30,18 @@ BeamformingSpeechEnhancerAudioProcessor::BeamformingSpeechEnhancerAudioProcessor
 
 BeamformingSpeechEnhancerAudioProcessor::~BeamformingSpeechEnhancerAudioProcessor()
 {
+}
+
+int getOrder(int bufferSize)
+{
+	int size = bufferSize / 2;
+	int ord = 0;
+	while (pow(2, ord) < size)
+	{
+		ord++;
+	}
+
+	return ord - 1;
 }
 
 //==============================================================================
@@ -101,7 +115,10 @@ void BeamformingSpeechEnhancerAudioProcessor::prepareToPlay (double sampleRate, 
 	spec.numChannels = 2;
 	spec.maximumBlockSize = samplesPerBlock;
 	spec.sampleRate - sampleRate;
-	processor.prepare(spec);
+	beamformerFilter.prepare(spec);
+	postFilter.prepare(spec);
+	srate = sampleRate;
+	blocksize = samplesPerBlock;
 }
 
 void BeamformingSpeechEnhancerAudioProcessor::releaseResources()
@@ -140,34 +157,72 @@ void BeamformingSpeechEnhancerAudioProcessor::processBlock (AudioBuffer<float>& 
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
 
-	dsp::AudioBlock<float> block(buffer);
-	dsp::ProcessContextReplacing<float> context(block);
-	processor.process(context);
 
-	// now, use the context to replace the output
-	for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+	// copy input to a block to handle beamforming (get Z)
+	AudioBuffer<float> tempBlock(totalNumInputChannels, buffer.getNumSamples());
+	tempBlock.copyFrom(0, 0, buffer.getReadPointer(0), buffer.getNumChannels());
+	tempBlock.copyFrom(1, 0, buffer.getReadPointer(1), buffer.getNumChannels());
+
+	dsp::AudioBlock<float> beamformingBlock(tempBlock);
+	dsp::ProcessContextReplacing<float> context(beamformingBlock);
+	beamformerFilter.process(context);
+	auto *bfL = beamformingBlock.getChannelPointer(0);
+	auto *bfR = beamformingBlock.getChannelPointer(1);
+
+	Array<float> zKArr(bfL, buffer.getNumSamples());
+	auto *zPtr = zKArr.getRawDataPointer();
+
+	for (int idx = 0; idx < buffer.getNumSamples(); ++idx)
 	{
-		// get write pointer to output
-		auto * writePtr = buffer.getWritePointer(i);
-
-		// get read ptr to inputs
-		auto *lRead = buffer.getReadPointer(0);
-		auto *rRead = buffer.getReadPointer(1);
-
-		for (int j = 0; j < buffer.getNumSamples(); ++j)
-		{
-			writePtr[j] = lRead[j] + rRead[j];
-		}
+		zPtr[idx] += bfR[0];
 	}
+
+	// now we have z[n]. do FFTs to get Z[k], Yl[k], Yr[k]
+	// FFT class will do this in place.  need to copy the input buffers to prevent them getting destroyed
+
+	// create arrays to copy data
+	auto *inLeft = buffer.getReadPointer(0);
+	auto *inRight = buffer.getReadPointer(1);
+
+	Array<float> ylKArr(inLeft, buffer.getNumSamples());
+	Array<float> yrKArr(inRight, buffer.getNumSamples());
+	auto *yLK = ylKArr.getRawDataPointer();
+	auto *yRK = yrKArr.getRawDataPointer();
+
+	// ZERO PAD ARRAYS THAT ARE GOING TO BE SENT TO FFT TO BE 4 * (2^ORDER), since first half of pointer is considered input
+	int fftOrd = getOrder(buffer.getNumSamples());
+	int newSize = 4 * pow(2, fftOrd);
+	zKArr.resize(newSize);
+	ylKArr.resize(newSize);
+	yrKArr.resize(newSize);
+
+	// size of the FFT is denoted by blocksize - ends up being of size 2^fftOrd
+	// the first half of the samples in the in/out 
+	// need to find smallest possible ord
+	dsp::FFT fftOperator(fftOrd);
+	fftOperator.performFrequencyOnlyForwardTransform(zPtr);
+	fftOperator.performFrequencyOnlyForwardTransform(yLK);
+	fftOperator.performFrequencyOnlyForwardTransform(yRK);
+	AudioBuffer<float> giBuff(1, buffer.getNumSamples());
+	auto *giPtr = giBuff.getWritePointer(0);
+	// now we have frequency domain component forms of the signal
+	// calculate dynamic portion of superdirective / postfilter combo
+	for (int i = 0; i < fftOperator.getSize(); i++)
+	{
+		giPtr[i] = pow(zPtr[i], 3) / (pow(yLK[i], 3) + yLK[i] * pow(yRK[i], 2) + yRK[i] * pow(yLK[i], 2) + pow(yRK[i], 3));
+	}
+
+	// use inverse transform to calculate time domain coefficients
+	fftOperator.performRealOnlyInverseTransform(giPtr);
+
+	// load coefficients to processor chain
+	postFilter.get<0>().copyAndLoadImpulseResponseFromBuffer(giBuff, srate, false, false, true, giBuff.getNumSamples());
+
+	// use postfilter chain to process the original input
+	dsp::AudioBlock<float> inputBuffer(buffer);
+	dsp::ProcessContextReplacing<float> processContext(inputBuffer);
+	postFilter.process(processContext);
     
 }
 
@@ -196,14 +251,26 @@ void BeamformingSpeechEnhancerAudioProcessor::setStateInformation (const void* d
     // whose contents will have been created by the getStateInformation() call.
 }
 
-void BeamformingSpeechEnhancerAudioProcessor::updateProcessor(String filename)
+void BeamformingSpeechEnhancerAudioProcessor::updateBeamformer(String filename)
 {
-	DBG(filename);
 
 	File f(filename);
 	if (f.exists())
 	{
-		processor.getProcessor().loadImpulseResponse(f, true, false, f.getSize(), false);
+		beamformerFilter.getProcessor().loadImpulseResponse(f, true, false, f.getSize(), false);
+	}
+	else
+	{
+		DBG("File not found");
+	}
+}
+
+void BeamformingSpeechEnhancerAudioProcessor::updatePostFilter(String filename)
+{
+	File f(filename);
+	if (f.exists())
+	{
+		postFilter.get<1>().loadImpulseResponse(f, false, false, f.getSize(), false);
 	}
 	else
 	{

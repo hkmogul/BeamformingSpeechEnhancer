@@ -32,7 +32,8 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     BeamformingSpeechEnhancerAudioProcessor& processor;
-	Array<String> audioFiles;
+	Array<String> beamFormerFiles;
+	Array<String> mFiles;
 	Slider angleSelector;
 	Label angleSelectorLabel;
 	TextEditor textBox;

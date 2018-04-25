@@ -54,11 +54,14 @@ public:
     //==============================================================================
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-	void updateProcessor(String filename);
-
+	void updateBeamformer(String filename);
+	void updatePostFilter(String filename);
 private:
-	dsp::ProcessorChain<dsp::Convolution> processor;
-
+	// represents the beamformer impulse response
+	dsp::ProcessorChain<dsp::Convolution> beamformerFilter;
+	dsp::ProcessorChain<dsp::Convolution,dsp::Convolution> postFilter;
+	int srate;
+	int blocksize;
     //==============================================================================
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BeamformingSpeechEnhancerAudioProcessor)
