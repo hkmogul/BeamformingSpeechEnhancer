@@ -59,9 +59,16 @@ public:
 private:
 	// represents the beamformer impulse response
 	dsp::ProcessorChain<dsp::Convolution> beamformerFilter;
-	dsp::ProcessorChain<dsp::Convolution,dsp::Convolution> postFilter;
+	dsp::ProcessorChain<dsp::ProcessorChain<dsp::Convolution>,dsp::Convolution> postFilter;
 	int srate;
 	int blocksize;
+	bool postFilterReady;
+	bool bfFilterReady;
+
+	Array<float> ylKArr;
+	Array<float> yrKArr;
+	Array<float> zKArr;
+	AudioBuffer<float> giBuff;
     //==============================================================================
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BeamformingSpeechEnhancerAudioProcessor)

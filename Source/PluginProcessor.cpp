@@ -26,6 +26,8 @@ BeamformingSpeechEnhancerAudioProcessor::BeamformingSpeechEnhancerAudioProcessor
                        )
 #endif
 {
+	postFilterReady = false;
+	bfFilterReady = false;
 }
 
 BeamformingSpeechEnhancerAudioProcessor::~BeamformingSpeechEnhancerAudioProcessor()
@@ -157,20 +159,31 @@ void BeamformingSpeechEnhancerAudioProcessor::processBlock (AudioBuffer<float>& 
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-
+	if (!postFilterReady || !bfFilterReady)
+	{
+		buffer.clear();
+		return;
+	}
 
 	// copy input to a block to handle beamforming (get Z)
+	DBG("BEAMFORM STAGE");
 	AudioBuffer<float> tempBlock(totalNumInputChannels, buffer.getNumSamples());
 	tempBlock.copyFrom(0, 0, buffer.getReadPointer(0), buffer.getNumChannels());
 	tempBlock.copyFrom(1, 0, buffer.getReadPointer(1), buffer.getNumChannels());
-
 	dsp::AudioBlock<float> beamformingBlock(tempBlock);
-	dsp::ProcessContextReplacing<float> context(beamformingBlock);
-	beamformerFilter.process(context);
+	if (bfFilterReady)
+	{
+		dsp::ProcessContextReplacing<float> context(beamformingBlock);
+		beamformerFilter.process(context);
+
+	}
+
 	auto *bfL = beamformingBlock.getChannelPointer(0);
 	auto *bfR = beamformingBlock.getChannelPointer(1);
-
-	Array<float> zKArr(bfL, buffer.getNumSamples());
+	// clear the array
+	zKArr.clearQuick();
+	zKArr.resize(buffer.getNumSamples());
+	//zKArr = Array<float>(bfL, buffer.getNumSamples());
 	auto *zPtr = zKArr.getRawDataPointer();
 
 	for (int idx = 0; idx < buffer.getNumSamples(); ++idx)
@@ -182,13 +195,20 @@ void BeamformingSpeechEnhancerAudioProcessor::processBlock (AudioBuffer<float>& 
 	// FFT class will do this in place.  need to copy the input buffers to prevent them getting destroyed
 
 	// create arrays to copy data
+	DBG("COPYING INPUT DATA");
+
 	auto *inLeft = buffer.getReadPointer(0);
 	auto *inRight = buffer.getReadPointer(1);
-
-	Array<float> ylKArr(inLeft, buffer.getNumSamples());
-	Array<float> yrKArr(inRight, buffer.getNumSamples());
+	ylKArr.clearQuick();
+	yrKArr.clearQuick();
+	ylKArr.resize(buffer.getNumSamples());
+	yrKArr.resize(buffer.getNumSamples());
+	//ylKArr = Array<float>(inLeft, buffer.getNumSamples());
+	//yrKArr = Array<float>(inRight, buffer.getNumSamples());
 	auto *yLK = ylKArr.getRawDataPointer();
 	auto *yRK = yrKArr.getRawDataPointer();
+	memcpy(yLK, inLeft, sizeof(float) * buffer.getNumSamples());
+	memcpy(yRK, inLeft, sizeof(float) * buffer.getNumSamples());
 
 	// ZERO PAD ARRAYS THAT ARE GOING TO BE SENT TO FFT TO BE 4 * (2^ORDER), since first half of pointer is considered input
 	int fftOrd = getOrder(buffer.getNumSamples());
@@ -200,14 +220,18 @@ void BeamformingSpeechEnhancerAudioProcessor::processBlock (AudioBuffer<float>& 
 	// size of the FFT is denoted by blocksize - ends up being of size 2^fftOrd
 	// the first half of the samples in the in/out 
 	// need to find smallest possible ord
+	DBG("PERFORMING FFT");
+
 	dsp::FFT fftOperator(fftOrd);
 	fftOperator.performFrequencyOnlyForwardTransform(zPtr);
 	fftOperator.performFrequencyOnlyForwardTransform(yLK);
 	fftOperator.performFrequencyOnlyForwardTransform(yRK);
-	AudioBuffer<float> giBuff(1, buffer.getNumSamples());
+	giBuff.setSize(1, buffer.getNumSamples(), false, false, false);
 	auto *giPtr = giBuff.getWritePointer(0);
 	// now we have frequency domain component forms of the signal
 	// calculate dynamic portion of superdirective / postfilter combo
+	DBG("CALCULATING Gk");
+
 	for (int i = 0; i < fftOperator.getSize(); i++)
 	{
 		giPtr[i] = pow(zPtr[i], 3) / (pow(yLK[i], 3) + yLK[i] * pow(yRK[i], 2) + yRK[i] * pow(yLK[i], 2) + pow(yRK[i], 3));
@@ -217,13 +241,25 @@ void BeamformingSpeechEnhancerAudioProcessor::processBlock (AudioBuffer<float>& 
 	fftOperator.performRealOnlyInverseTransform(giPtr);
 
 	// load coefficients to processor chain
-	postFilter.get<0>().copyAndLoadImpulseResponseFromBuffer(giBuff, srate, false, false, true, giBuff.getNumSamples());
+	postFilter.get<0>().getProcessor().
+		copyAndLoadImpulseResponseFromBuffer(giBuff, srate, false, false, true, giBuff.getNumSamples());
 
 	// use postfilter chain to process the original input
+	DBG("POST PROCESSING");
+
 	dsp::AudioBlock<float> inputBuffer(buffer);
-	dsp::ProcessContextReplacing<float> processContext(inputBuffer);
-	postFilter.process(processContext);
-    
+	if (postFilterReady)
+	{
+		DBG("ACTUALLY POST PROCESSING");
+		dsp::ProcessContextReplacing<float> processContext(inputBuffer);
+		postFilter.process(processContext);
+	}
+	else
+	{
+		DBG("NOT READY NOT DOING POST");
+	}
+
+	DBG("PROCESS COMPLETE");
 }
 
 //==============================================================================
@@ -258,6 +294,7 @@ void BeamformingSpeechEnhancerAudioProcessor::updateBeamformer(String filename)
 	if (f.exists())
 	{
 		beamformerFilter.getProcessor().loadImpulseResponse(f, true, false, f.getSize(), false);
+		bfFilterReady = true;
 	}
 	else
 	{
@@ -271,6 +308,7 @@ void BeamformingSpeechEnhancerAudioProcessor::updatePostFilter(String filename)
 	if (f.exists())
 	{
 		postFilter.get<1>().loadImpulseResponse(f, false, false, f.getSize(), false);
+		postFilterReady = true;
 	}
 	else
 	{

@@ -99,10 +99,10 @@ BeamformingSpeechEnhancerAudioProcessorEditor::BeamformingSpeechEnhancerAudioPro
 		"M_degree345.wav"
 	};
 
-
+	angleSelector.setEnabled(false);
 	baseDir = "C:\\JUCE\\sbx\\BeamformingSpeechEnhancer\\MatlabScripts\\";
-	processor.updateBeamformer(File(baseDir).getChildFile(beamFormerFiles[0]).getFullPathName());
-	processor.updatePostFilter(File(baseDir).getChildFile(mFiles[0]).getFullPathName());
+	//processor.updateBeamformer(File(baseDir).getChildFile(beamFormerFiles[0]).getFullPathName());
+	//processor.updatePostFilter(File(baseDir).getChildFile(mFiles[0]).getFullPathName());
 
 	// Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
@@ -161,8 +161,11 @@ void BeamformingSpeechEnhancerAudioProcessorEditor::filenameComponentChanged(Fil
 {
 	if (cpt == &fileChooser)
 	{
-		baseDir = fileChooser.getCurrentFileText() + "\\";
-		processor.updateBeamformer(baseDir + beamFormerFiles[0]);
+		baseDir = fileChooser.getCurrentFileText();
+		processor.updateBeamformer(File(baseDir).getChildFile(beamFormerFiles[0]).getFullPathName());
+		processor.updatePostFilter(File(baseDir).getChildFile(mFiles[0]).getFullPathName());
+
+		angleSelector.setEnabled(true);
 		DBG(baseDir);
 	}
 }
