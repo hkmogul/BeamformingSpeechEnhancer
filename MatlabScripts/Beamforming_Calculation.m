@@ -6,7 +6,9 @@ load IRC_1002_R_HRIR.mat
 % impulse response: elevation = 0, 24 different azimuth
 left_impulse = l_hrir_S.content_m(73:96,:);
 right_impulse = r_hrir_S.content_m(73:96,:);
-
+% trim off empty space at beginning of impulse to reduce latency
+left_impulse(:,1:240) = [];
+right_impulse(:,1:240) = [];
 
 % Dl, Dr: fft of impulse response
 D_left = fft(left_impulse.').';
@@ -101,4 +103,3 @@ end
 % plot(left_ifft(8,:));
 % figure;
 % plot(right_ifft(8,:));
-
