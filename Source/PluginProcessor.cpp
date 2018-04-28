@@ -161,7 +161,8 @@ void BeamformingSpeechEnhancerAudioProcessor::processBlock (AudioBuffer<float>& 
 
 	if (!postFilterReady || !bfFilterReady)
 	{
-		buffer.clear();
+		for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+			buffer.clear(i, 0, buffer.getNumSamples());
 		return;
 	}
 
