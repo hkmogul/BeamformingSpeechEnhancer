@@ -28,6 +28,7 @@ BeamformingSpeechEnhancerAudioProcessor::BeamformingSpeechEnhancerAudioProcessor
 {
 	postFilterReady = false;
 	bfFilterReady = false;
+	isBypassed = true;
 }
 
 BeamformingSpeechEnhancerAudioProcessor::~BeamformingSpeechEnhancerAudioProcessor()
@@ -158,7 +159,12 @@ void BeamformingSpeechEnhancerAudioProcessor::processBlock (AudioBuffer<float>& 
     ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
-
+	if (isBypassed)
+	{
+		for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+			buffer.clear(i, 0, buffer.getNumSamples());
+		return;
+	}
 	if (!postFilterReady || !bfFilterReady)
 	{
 		for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)

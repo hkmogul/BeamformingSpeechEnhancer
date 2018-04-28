@@ -56,6 +56,12 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 	void updateBeamformer(String filename);
 	void updatePostFilter(String filename);
+	void disableBypass() {
+		isBypassed = false;
+	};
+	void enableBypass() {
+		isBypassed = true;
+	};
 private:
 	// represents the beamformer impulse response
 	dsp::ProcessorChain<dsp::Convolution> beamformerFilter;
@@ -64,6 +70,7 @@ private:
 	int blocksize;
 	bool postFilterReady;
 	bool bfFilterReady;
+	bool isBypassed;
 
 	Array<float> ylKArr;
 	Array<float> yrKArr;

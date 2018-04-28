@@ -106,6 +106,11 @@ BeamformingSpeechEnhancerAudioProcessorEditor::BeamformingSpeechEnhancerAudioPro
 
 	// Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
+	addAndMakeVisible(bypassButton);
+	bypassButton.setButtonText("BYPASS");
+	bypassButton.addListener(this);
+	bypassButton.setToggleState(true, NotificationType::dontSendNotification);
+
     setSize (400, 300);	
 }
 
@@ -130,6 +135,7 @@ void BeamformingSpeechEnhancerAudioProcessorEditor::resized()
 	angleSelector.setBoundsRelative(0.4, 0.5, 0.3, 0.3);
 	textBox.setBoundsRelative(0.4, 0.85, 0.2, 0.05);
 	fileChooser.setBoundsRelative(0.1, 0.1, 0.5, 0.2);
+	bypassButton.setBoundsRelative(0.7, 0.1, 0.2, 0.2);
 }
 
 void BeamformingSpeechEnhancerAudioProcessorEditor::sliderValueChanged(Slider * slider)
@@ -151,10 +157,17 @@ void BeamformingSpeechEnhancerAudioProcessorEditor::sliderValueChanged(Slider * 
 
 void BeamformingSpeechEnhancerAudioProcessorEditor::buttonClicked(Button * button)
 {
-	//if (button == &selectBaseDir)
-	//{
-	//	// open a filechooser to select the base directory
-	//}
+	if (button == &bypassButton)
+	{
+		if (bypassButton.getToggleState())
+		{
+			processor.enableBypass();
+		}
+		else
+		{
+			processor.disableBypass();
+		}
+	}
 }
 
 void BeamformingSpeechEnhancerAudioProcessorEditor::filenameComponentChanged(FilenameComponent * cpt)

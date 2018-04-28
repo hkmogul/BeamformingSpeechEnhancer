@@ -39,5 +39,6 @@ private:
 	TextEditor textBox;
 	FilenameComponent fileChooser{ "BaseDirectory",{}, false, true, false, "*",{}, "choose a base directory" };
 	String baseDir;
+	ToggleButton bypassButton;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BeamformingSpeechEnhancerAudioProcessorEditor)
 };
